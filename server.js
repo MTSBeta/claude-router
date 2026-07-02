@@ -48,10 +48,13 @@ ${message}
     });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "refine error" });
-  }
-});
+  console.error("FULL ERROR:", error);
+
+  res.status(500).json({
+    error: "refine error",
+    details: error.message,
+  });
+}
 
 
 // ========================================
