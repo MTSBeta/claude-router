@@ -7,7 +7,7 @@ app.use(express.json());
 const PORT = process.env.PORT;
 
 // ========================================
-// 🔧 HELPER FUNCTION (OpenAI call)
+// 🔧 HELPER FUNCTION
 // ========================================
 async function callOpenAI(prompt) {
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -30,220 +30,232 @@ async function callOpenAI(prompt) {
 // ✅ ROOT
 // ========================================
 app.get("/", (req, res) => {
-  res.json({ ok: true, service: "ai-outreach-system" });
+  res.json({ ok: true, service: "ai-outreach-system-v2" });
 });
 
 
 // ========================================
-// 1️⃣ SIGNAL-BASED PERSONALIZATION
+// 1️⃣ PERSONALIZE (UPGRADED)
 // ========================================
 app.post("/personalize", async (req, res) => {
   const { name, company, signals } = req.body;
 
   try {
     const prompt = `
-You are writing a hyper-specific outreach hook.
+Generate TWO outreach hooks using the signals.
 
-Use the signals to create ONE sharp, natural opening line.
-Avoid generic phrases like "I noticed..."
+Rules:
+- Specific
+- Natural
+- No "I noticed"
+- One direct, one curiosity-driven
 
 Prospect: ${name} at ${company}
 Signals:
 ${signals.join("\n")}
 
-Output only the hook.
+Return JSON:
+{
+  "primary": "...",
+  "backup": "...",
+  "confidence": 0-1
+}
 `;
 
-    const reply = await callOpenAI(prompt);
-
-    res.json({ hook: reply });
+    const result = await callOpenAI(prompt);
+    res.json({ result });
 
   } catch (error) {
-    console.error(error);
     res.status(500).json({ error: "personalize error", details: error.message });
   }
 });
 
 
 // ========================================
-// 2️⃣ REFINE OUTREACH
+// 2️⃣ REFINE (FINAL OUTPUT ENGINE)
 // ========================================
 app.post("/chat", async (req, res) => {
   const { message } = req.body;
 
   try {
     const prompt = `
-Rewrite this outreach message to sound human, natural, and not salesy.
+Rewrite this outreach message.
 
 Rules:
-- Short
+- Human
+- Casual
 - No fluff
-- No "I hope you're well"
-- Slightly casual
-- End with an easy question
+- No "hope you're well"
+- End with soft question
 
 Message:
 ${message}
+
+Return JSON:
+{
+  "message": "...",
+  "confidence": 0-1
+}
 `;
 
-    const reply = await callOpenAI(prompt);
-
-    res.json({ reply });
+    const result = await callOpenAI(prompt);
+    res.json({ result });
 
   } catch (error) {
-    console.error(error);
     res.status(500).json({ error: "refine error", details: error.message });
   }
 });
 
 
 // ========================================
-// 3️⃣ REPLY CLASSIFIER
+// 3️⃣ CLASSIFIER (STRICT FORMAT)
 // ========================================
 app.post("/classify", async (req, res) => {
   const { reply } = req.body;
 
   try {
     const prompt = `
-Classify this reply into ONE:
+Classify this reply.
 
+Categories:
 - interested
 - objection
 - not_now
 - unsubscribe
 - out_of_office
-
-Also include:
-- tone
-- recommended next action
+- unclear
 
 Reply:
 ${reply}
 
-Return JSON only.
+Return JSON:
+{
+  "type": "...",
+  "confidence": 0-1,
+  "next_step": "reply | sequence | stop | review",
+  "notes": "short reasoning"
+}
 `;
 
     const result = await callOpenAI(prompt);
-
     res.json({ result });
 
   } catch (error) {
-    console.error(error);
     res.status(500).json({ error: "classify error", details: error.message });
   }
 });
 
 
 // ========================================
-// 4️⃣ SEQUENCE GENERATOR
+// 4️⃣ SEQUENCE (CONTEXT-AWARE)
 // ========================================
 app.post("/sequence", async (req, res) => {
-  const { first_message } = req.body;
+  const { original_message, reply_type, touch_number } = req.body;
 
   try {
     const prompt = `
-Generate 3 follow-ups for this outreach.
+Generate follow-ups.
+
+Context:
+- Original: ${original_message}
+- Reply type: ${reply_type}
+- Touch #: ${touch_number}
 
 Rules:
-- Each message = different angle
-- No "just bumping"
-- Natural tone
+- Each message different angle
+- No "just checking in"
 - Short
-
-First message:
-${first_message}
 
 Return JSON:
 {
   "step2": "...",
   "step3": "...",
-  "step4": "..."
+  "step4": "...",
+  "confidence": 0-1
 }
 `;
 
-    const sequence = await callOpenAI(prompt);
-
-    res.json({ sequence });
+    const result = await callOpenAI(prompt);
+    res.json({ result });
 
   } catch (error) {
-    console.error(error);
     res.status(500).json({ error: "sequence error", details: error.message });
   }
 });
 
 
 // ========================================
-// 5️⃣ VARIANT GENERATION
+// 5️⃣ VARIANTS
 // ========================================
 app.post("/variants", async (req, res) => {
   const { message } = req.body;
 
   try {
     const prompt = `
-Create 3 structurally different outreach versions:
+Generate 3 outreach variants:
 
-1. Direct
-2. Curious
-3. Authority-based
+- Direct
+- Curious
+- Authority
 
-Message:
-${message}
-
-Return JSON.
+Return JSON:
+{
+  "direct": "...",
+  "curiosity": "...",
+  "authority": "...",
+  "confidence": 0-1
+}
 `;
 
-    const variants = await callOpenAI(prompt);
-
-    res.json({ variants });
+    const result = await callOpenAI(prompt);
+    res.json({ result });
 
   } catch (error) {
-    console.error(error);
     res.status(500).json({ error: "variants error", details: error.message });
   }
 });
 
 
 // ========================================
-// 6️⃣ SPAM CHECK
+// 6️⃣ SPAM CHECK (STRICT)
 // ========================================
 app.post("/spam-check", async (req, res) => {
   const { message } = req.body;
 
   try {
     const prompt = `
-Check this message for spam risk.
+Check for spam risk.
 
-Return:
-- risk (low/medium/high)
-- issues
-- improved version
+Return JSON:
+{
+  "risk": "low | medium | high",
+  "issues": ["..."],
+  "fixed": "...",
+  "confidence": 0-1
+}
 
 Message:
 ${message}
-
-Return JSON.
 `;
 
     const result = await callOpenAI(prompt);
-
     res.json({ result });
 
   } catch (error) {
-    console.error(error);
     res.status(500).json({ error: "spam error", details: error.message });
   }
 });
 
 
 // ========================================
-// 7️⃣ VOICE / BRAND CONSISTENCY
+// 7️⃣ VOICE CHECK
 // ========================================
 app.post("/voice-check", async (req, res) => {
   const { message, examples } = req.body;
 
   try {
     const prompt = `
-Match this message to the tone of these examples.
+Match tone to examples.
 
 Examples:
 ${examples.join("\n\n")}
@@ -251,17 +263,18 @@ ${examples.join("\n\n")}
 Message:
 ${message}
 
-Return:
-- score (1-10)
-- improved version matching tone
+Return JSON:
+{
+  "score": 1-10,
+  "fixed": "...",
+  "confidence": 0-1
+}
 `;
 
     const result = await callOpenAI(prompt);
-
     res.json({ result });
 
   } catch (error) {
-    console.error(error);
     res.status(500).json({ error: "voice error", details: error.message });
   }
 });
