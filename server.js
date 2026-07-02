@@ -3,25 +3,26 @@ require("dotenv").config();
 
 const OpenAI = require("openai");
 
-// ✅ DEBUG (keep for now)
-console.log("OPENAI KEY:", process.env.OPENAI_API_KEY);
-
 const app = express();
 app.use(express.json());
 
-const PORT = 3000;
+// 🔥 THIS IS CRITICAL FOR RAILWAY
+const PORT = process.env.PORT;
 
-// ✅ OpenAI client
+console.log("Starting server...");
+console.log("PORT:", PORT);
+
+// OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// ✅ Root route
+// Root route (health check)
 app.get("/", (req, res) => {
   res.json({ ok: true, service: "ai-router" });
 });
 
-// ✅ Chat route
+// Chat route
 app.post("/chat", async (req, res) => {
   const { message } = req.body;
 
@@ -38,12 +39,12 @@ app.post("/chat", async (req, res) => {
     });
 
   } catch (error) {
-    console.error("OPENAI ERROR:", error);
+    console.error("OpenAI ERROR:", error.message);
     res.status(500).json({ error: "OpenAI error" });
   }
 });
 
-// ✅ Start server
+// Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
