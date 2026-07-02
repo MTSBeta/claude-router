@@ -7,7 +7,7 @@ app.use(express.json());
 const PORT = process.env.PORT;
 
 // ========================================
-// 🔧 HELPER FUNCTION
+// HELPER FUNCTION
 // ========================================
 async function callOpenAI(prompt) {
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -27,20 +27,24 @@ async function callOpenAI(prompt) {
 }
 
 // ========================================
-// ✅ ROOT
+// ROOT
 // ========================================
 app.get("/", (req, res) => {
   res.json({ ok: true, service: "ai-outreach-system-v2" });
 });
 
-
 // ========================================
-// 1️⃣ PERSONALIZE (UPGRADED)
+// 1. PERSONALIZE
+// FIX: handle missing/non-array signals
 // ========================================
 app.post("/personalize", async (req, res) => {
   const { name, company, signals } = req.body;
 
   try {
+    const signalsList = Array.isArray(signals) && signals.length > 0
+      ? signals.join("\n")
+      : (typeof signals === "string" && signals.length > 0 ? signals : "No specific signals provided");
+
     const prompt = `
 Generate TWO outreach hooks using the signals.
 
@@ -50,9 +54,9 @@ Rules:
 - No "I noticed"
 - One direct, one curiosity-driven
 
-Prospect: ${name} at ${company}
+Prospect: ${name || "Unknown"} at ${company || "Unknown"}
 Signals:
-${signals.join("\n")}
+${signalsList}
 
 Return JSON:
 {
@@ -70,9 +74,8 @@ Return JSON:
   }
 });
 
-
 // ========================================
-// 2️⃣ REFINE (FINAL OUTPUT ENGINE)
+// 2. REFINE
 // ========================================
 app.post("/chat", async (req, res) => {
   const { message } = req.body;
@@ -106,9 +109,8 @@ Return JSON:
   }
 });
 
-
 // ========================================
-// 3️⃣ CLASSIFIER (STRICT FORMAT)
+// 3. CLASSIFIER
 // ========================================
 app.post("/classify", async (req, res) => {
   const { reply } = req.body;
@@ -145,9 +147,8 @@ Return JSON:
   }
 });
 
-
 // ========================================
-// 4️⃣ SEQUENCE (CONTEXT-AWARE)
+// 4. SEQUENCE
 // ========================================
 app.post("/sequence", async (req, res) => {
   const { original_message, reply_type, touch_number } = req.body;
@@ -183,9 +184,8 @@ Return JSON:
   }
 });
 
-
 // ========================================
-// 5️⃣ VARIANTS
+// 5. VARIANTS
 // ========================================
 app.post("/variants", async (req, res) => {
   const { message } = req.body;
@@ -215,9 +215,8 @@ Return JSON:
   }
 });
 
-
 // ========================================
-// 6️⃣ SPAM CHECK (STRICT)
+// 6. SPAM CHECK
 // ========================================
 app.post("/spam-check", async (req, res) => {
   const { message } = req.body;
@@ -246,19 +245,23 @@ ${message}
   }
 });
 
-
 // ========================================
-// 7️⃣ VOICE CHECK
+// 7. VOICE CHECK
+// FIX: handle missing/non-array examples
 // ========================================
 app.post("/voice-check", async (req, res) => {
   const { message, examples } = req.body;
 
   try {
+    const examplesList = Array.isArray(examples) && examples.length > 0
+      ? examples.join("\n\n")
+      : "Professional, warm, conversational. Not salesy. Direct and human. Short sentences.";
+
     const prompt = `
 Match tone to examples.
 
 Examples:
-${examples.join("\n\n")}
+${examplesList}
 
 Message:
 ${message}
@@ -279,9 +282,8 @@ Return JSON:
   }
 });
 
-
 // ========================================
-// 🚀 START SERVER
+// START SERVER
 // ========================================
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
