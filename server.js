@@ -1,15 +1,10 @@
 const express = require("express");
 require("dotenv").config();
-const OpenAI = require("openai");
 
 const app = express();
 app.use(express.json());
 
 const PORT = process.env.PORT;
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 // ✅ ROOT
 app.get("/", (req, res) => {
@@ -38,24 +33,32 @@ Message:
 ${message}
 `;
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }],
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }]
+      })
     });
 
+    const data = await response.json();
+
     res.json({
-      reply: response.choices[0].message.content,
+      reply: data.choices[0].message.content
     });
 
   } catch (error) {
     console.error("FULL ERROR:", error);
-
     res.status(500).json({
       error: "refine error",
-      details: error.message,
+      details: error.message
     });
   }
-}); // ✅ THIS WAS MISSING
+});
 
 
 // ========================================
@@ -74,12 +77,10 @@ Classify this reply into ONE category:
 - unsubscribe
 - out_of_office
 
-Also return a recommended next action.
-
 Reply:
 ${reply}
 
-Return JSON like:
+Return JSON:
 {
   "type": "...",
   "action": "...",
@@ -87,155 +88,29 @@ Return JSON like:
 }
 `;
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }],
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }]
+      })
     });
 
+    const data = await response.json();
+
     res.json({
-      result: response.choices[0].message.content,
+      result: data.choices[0].message.content
     });
 
   } catch (error) {
     console.error("FULL ERROR:", error);
     res.status(500).json({
       error: "classify error",
-      details: error.message,
-    });
-  }
-});
-
-
-// ========================================
-// 3️⃣ SEQUENCE
-// ========================================
-app.post("/sequence", async (req, res) => {
-  const { first_message } = req.body;
-
-  try {
-    const prompt = `
-Given this first outreach message, generate 3 follow-ups.
-
-Rules:
-- Each message must use a DIFFERENT angle
-- No "just bumping"
-- Natural tone
-- Short
-
-First message:
-${first_message}
-
-Return JSON:
-{
-  "step2": "...",
-  "step3": "...",
-  "step4": "..."
-}
-`;
-
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }],
-    });
-
-    res.json({
-      sequence: response.choices[0].message.content,
-    });
-
-  } catch (error) {
-    console.error("FULL ERROR:", error);
-    res.status(500).json({
-      error: "sequence error",
-      details: error.message,
-    });
-  }
-});
-
-
-// ========================================
-// 4️⃣ VARIANTS
-// ========================================
-app.post("/variants", async (req, res) => {
-  const { message } = req.body;
-
-  try {
-    const prompt = `
-Create 3 DIFFERENT outreach versions:
-
-1. Direct
-2. Curious
-3. Authority-based
-
-Message:
-${message}
-
-Return JSON:
-{
-  "direct": "...",
-  "curiosity": "...",
-  "authority": "..."
-}
-`;
-
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }],
-    });
-
-    res.json({
-      variants: response.choices[0].message.content,
-    });
-
-  } catch (error) {
-    console.error("FULL ERROR:", error);
-    res.status(500).json({
-      error: "variants error",
-      details: error.message,
-    });
-  }
-});
-
-
-// ========================================
-// 5️⃣ SPAM CHECK
-// ========================================
-app.post("/spam-check", async (req, res) => {
-  const { message } = req.body;
-
-  try {
-    const prompt = `
-Check this outreach message for spam risk.
-
-Look for:
-- spam words
-- aggressive tone
-- formatting issues
-
-Message:
-${message}
-
-Return JSON:
-{
-  "risk": "low | medium | high",
-  "issues": ["..."],
-  "fixed": "clean version"
-}
-`;
-
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }],
-    });
-
-    res.json({
-      result: response.choices[0].message.content,
-    });
-
-  } catch (error) {
-    console.error("FULL ERROR:", error);
-    res.status(500).json({
-      error: "spam error",
-      details: error.message,
+      details: error.message
     });
   }
 });
