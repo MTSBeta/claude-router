@@ -11,14 +11,14 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// ✅ ROOT (health check)
+// ✅ ROOT
 app.get("/", (req, res) => {
   res.json({ ok: true, service: "ai-router" });
 });
 
 
 // ========================================
-// 1️⃣ REFINE OUTREACH (YOU ALREADY USE THIS)
+// 1️⃣ REFINE OUTREACH
 // ========================================
 app.post("/chat", async (req, res) => {
   const { message } = req.body;
@@ -48,17 +48,18 @@ ${message}
     });
 
   } catch (error) {
-  console.error("FULL ERROR:", error);
+    console.error("FULL ERROR:", error);
 
-  res.status(500).json({
-    error: "refine error",
-    details: error.message,
-  });
-}
+    res.status(500).json({
+      error: "refine error",
+      details: error.message,
+    });
+  }
+}); // ✅ THIS WAS MISSING
 
 
 // ========================================
-// 2️⃣ CLASSIFY REPLIES (VERY IMPORTANT)
+// 2️⃣ CLASSIFY
 // ========================================
 app.post("/classify", async (req, res) => {
   const { reply } = req.body;
@@ -96,14 +97,17 @@ Return JSON like:
     });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "classify error" });
+    console.error("FULL ERROR:", error);
+    res.status(500).json({
+      error: "classify error",
+      details: error.message,
+    });
   }
 });
 
 
 // ========================================
-// 3️⃣ SEQUENCE GENERATOR (FOLLOW UPS)
+// 3️⃣ SEQUENCE
 // ========================================
 app.post("/sequence", async (req, res) => {
   const { first_message } = req.body;
@@ -139,14 +143,17 @@ Return JSON:
     });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "sequence error" });
+    console.error("FULL ERROR:", error);
+    res.status(500).json({
+      error: "sequence error",
+      details: error.message,
+    });
   }
 });
 
 
 // ========================================
-// 4️⃣ VARIANT GENERATION (A/B TEST)
+// 4️⃣ VARIANTS
 // ========================================
 app.post("/variants", async (req, res) => {
   const { message } = req.body;
@@ -180,8 +187,11 @@ Return JSON:
     });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "variants error" });
+    console.error("FULL ERROR:", error);
+    res.status(500).json({
+      error: "variants error",
+      details: error.message,
+    });
   }
 });
 
@@ -222,8 +232,11 @@ Return JSON:
     });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "spam error" });
+    console.error("FULL ERROR:", error);
+    res.status(500).json({
+      error: "spam error",
+      details: error.message,
+    });
   }
 });
 
